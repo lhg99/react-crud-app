@@ -1,56 +1,98 @@
-import React, {useState, useCallback} from "react";
-import "./App.css";
-import Lists from "./components/Lists";
-import Form from "./components/Form";
+import './App.css';
+import ExpenseForm from './components/ExpenseForm';
+import ExpenseList from './components/ExpenseList';
+import { useState } from 'react';
 
-const initialCrudData = localStorage.getItem("crudData") ? JSON.parse(localStorage.getItem("crudData")) : [];
+function App() {
 
-export default function App() {
+  const [expenses, setExpenses] = useState([
+    { id: 1, charge: '렌트비', amount: 1500 },
+    { id: 2, charge: '교통비', amount: 3000 }
+  ]);
 
-  const [crudData, setCrudData] = useState(initialCrudData);
-  const [value, setValue] = useState("");
-  const [price, setPrice] = useState(0);
+  const [charge, setCharge] = useState('');
+  const [amount, setAmount] = useState(0);
+  const [id, setId] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
 
-  const handleClick = useCallback((id) => {
-    let newCrudData = crudData.filter((data) => data.id !== id);
-    setCrudData(newCrudData);
-    localStorage.setItem("crudData", JSON.stringify(newCrudData));
-  }, [crudData]);
+  const handleDelete = (id) => {
+    console.log(id);
+
+    const newExpenses = expenses.filter(expense => expense.id !== id);
+    setExpenses(newExpenses);
+  }
+
+  const handleCharge = (e) => {
+    console.log(e.target.value);
+    setCharge(e.target.value);
+  }
+
+  const handleAmount = (e) => {
+    setAmount(e.target.valueAsNumber);
+  }
 
   const handleSubmit = (e) => {
-    // form 안에 input을 전송할 때 페이지 리로드 되는 것 막아줌
     e.preventDefault();
+    if(charge !== "" && amount > 0) {
+      if(isEditing) {
+        const newExpenses = expenses.map(item => {
+          return item.id === id ? {...item, charge, amount} : item;
+        })
 
-    // 새로운 crud 데이터
-    let newCrud = {
-        id: Date.now(),
-        title: value,
-        cost: price,
-        completed: false
-    };
+        setExpenses(newExpenses);
+        setIsEditing(false);
 
-    // 원래 있던 데이터에 추가하기 인수에 함수를 이용해서 사용
-    setCrudData(prev => [...prev, newCrud]);
-    localStorage.setItem("crudData", JSON.stringify([...crudData, newCrud]));
+      } else {
+        const newExpense = {
+          id: crypto.randomUUID(),
+          charge,
+          amount
+        }
+        const newExpenses = [...expenses, newExpense];
+        setExpenses(newExpenses);
+        setAmount(0);
+        setCharge('');
+      }
+    } else {
+      alert("Please enter")
+    }
+  }
 
-    console.log(crudData);
+  const handleEdit = (id) => {
+    const expense = expenses.find(expense => expense.id === id);
+    const { charge, amount } = expense;
+    setId(id);
+    setIsEditing(true);
+    setCharge(charge);
+    setAmount(amount);
+  }
 
-    setValue("");
-    setPrice(0);
-  };
-  
   return (
-    <div className="flex items-center justify-center w-screen h-screen bg-yellow-50">
-      <div className="w-full p-6 m-4 bg-white rounded shadow lg:w-3/4 lg:max-w-lg">
-        <div className="flex justify-between mb-3">
-          <h1>예산 계산기</h1>
+    <div className="App">
+      <main>
+        <h1>
+          예산 계산기
+        </h1>
+        <div>
+          <ExpenseForm isEditing={isEditing} charge={charge} amount={amount} handleCharge={handleCharge} handleAmount={handleAmount} handleSubmit={handleSubmit} initialExpenses={expenses} />
         </div>
-        
-        <Lists crudData={crudData} setCrudData={setCrudData} handleClick={handleClick} />
-        
-        <Form handleSubmit={handleSubmit} value={value} setValue={setValue} price={price} setPrice={setPrice} />
-      </div>
+
+        <div>
+          <ExpenseList initialExpenses={expenses} handleDelete={handleDelete} handleEdit={handleEdit} />
+        </div>
+
+        <div>
+          <p>
+            총 지출:
+            <span>{expenses.reduce((acc, curr) => {
+              return acc += curr.amount
+            }, 0)
+            }원</span>
+          </p>
+        </div>
+      </main>
     </div>
-  )
+  );
 }
 
+export default App;
